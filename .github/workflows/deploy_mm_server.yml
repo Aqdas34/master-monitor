@@ -21,22 +21,18 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: 22
           script: |
-            # 1. Ensure parent directory exists and is writable
-            sudo mkdir -p /var/www/globalalertz
-            sudo chown -R $USER:$USER /var/www/globalalertz
-            
-            # 2. Sync code
-            if [ ! -d "/var/www/globalalertz/MasterMonitorServer/.git" ]; then
-              echo "Cloning repository..."
-              git clone https://github.com/${{ github.repository }} /var/www/globalalertz/MasterMonitorServer
+            # 1. Sync code to home directory
+            if [ ! -d "~/MasterMonitorServer/.git" ]; then
+              echo "Cloning repository to home directory..."
+              git clone https://github.com/${{ github.repository }} ~/MasterMonitorServer
             fi
             
-            cd /var/www/globalalertz/MasterMonitorServer
+            cd ~/MasterMonitorServer
             echo "Pulling latest changes..."
             git fetch origin main
             git reset --hard origin/main
             
-            # 3. Handle Virtual Environment
+            # 2. Handle Virtual Environment
             if [ ! -d "venv" ]; then
               echo "Creating virtual environment..."
               python3 -m venv venv
@@ -45,9 +41,11 @@ jobs:
             pip install --upgrade pip
             pip install -r requirements.txt
             
-            # 4. Handle Systemd Service
-            echo "Updating and restarting service..."
-            sudo cp mm_server.service /etc/systemd/system/mm_server.service
-            sudo systemctl daemon-reload
-            sudo systemctl enable mm_server.service
-            sudo systemctl restart mm_server.service
+            # 3. Handle Systemd User Service (No sudo needed!)
+            echo "Updating and restarting user service..."
+            mkdir -p ~/.config/systemd/user/
+            cp mm_server.service ~/.config/systemd/user/mm_server.service
+            
+            systemctl --user daemon-reload
+            systemctl --user enable mm_server.service
+            systemctl --user restart mm_server.service

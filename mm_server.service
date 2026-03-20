@@ -3,11 +3,11 @@ Description=MasterMonitor Local Server (Edge Gateway)
 After=network.target
 
 [Service]
-User=www-data
-Group=www-data
-WorkingDirectory=/var/www/globalalertz/MasterMonitorServer
-Environment="PATH=/var/www/globalalertz/MasterMonitorServer/venv/bin"
-ExecStart=/var/www/globalalertz/MasterMonitorServer/venv/bin/python main.py
+# User/Group not needed for systemd --user
+WorkingDirectory=%h/MasterMonitorServer
+Environment="PATH=%h/MasterMonitorServer/venv/bin"
+ExecStart=%h/MasterMonitorServer/venv/bin/python main.py
+Restart=always
 
 [Install]
-WantedBy=multi-user.target
+WantedBy=default.target

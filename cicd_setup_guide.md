@@ -33,22 +33,26 @@ Once the keys are set up, add these to your repository (`Settings > Secrets and 
 | `SSH_USER` | `devuser3` |
 | `SSH_PRIVATE_KEY` | Paste your **Private SSH Key** |
 
-### 5. Automated VPS Setup (Critical!)
-The GitHub Actions workflow uses `sudo` to manage your server. Since GitHub cannot type your password, you **MUST** enable passwordless sudo for your user:
+### 5. VPS Setup (No Sudo Required!)
+Since you have restricted permissions, I've updated the workflow to deploy **directly inside your home directory** (`/home/devuser3/`).
 
-1.  **Log in to your VPS**:
-    ```bash
-    ssh devuser3@157.173.120.125
-    ```
-2.  **Run this exact command**:
-    ```bash
-    echo "devuser3 ALL=(ALL) NOPASSWD: ALL" | sudo tee /etc/sudoers.d/devuser3
-    ```
-    *This allows the CI/CD to update your app and restart services without getting stuck at a password prompt.*
+**The ONLY things you need to do once are:**
+1. Log in: `ssh devuser3@157.173.120.125`.
+2. Run this once to ensure your user-level services keep running even after you log out:
+   ```bash
+   sudo loginctl enable-linger devuser3
+   ```
+   *(If you can't run this sudo command, don't worry—the app will still run as long as you are logged in, or we can use PM2 later).*
 
-3.  **Ensure Git and Venv are installed**:
-    ```bash
-    sudo apt update && sudo apt install git python3-venv -y
-    ```
+3. Ensure `git` and `python3-venv` are on the server:
+   ```bash
+   apt update && apt install git python3-venv -y 
+   ```
 
-After running the `NOPASSWD` command, go to GitHub and click **Re-run all jobs** in the Actions tab. It should now pass successfully!
+**That's it!** The CI/CD will now automatically:
+- Create `~/MasterMonitorServer`.
+- Clone the code.
+- Create the virtual environment.
+- Register the app as a **User Service** (zero sudo needed).
+
+Go to GitHub and click **Re-run all jobs**—it should work perfectly now!
