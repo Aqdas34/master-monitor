@@ -21,23 +21,32 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: 22
           script: |
-            # 1. Update the code from GitHub
-            cd /var/www/globalalertz/MasterMonitorServer || (sudo mkdir -p /var/www/globalalertz/MasterMonitorServer && sudo chown -R $USER:$USER /var/www/globalalertz/MasterMonitorServer && cd /var/www/globalalertz/MasterMonitorServer && git clone https://github.com/${{ github.repository }} .)
+            # 1. Ensure parent directory exists and is writable
+            sudo mkdir -p /var/www/globalalertz
+            sudo chown -R $USER:$USER /var/www/globalalertz
             
-            # 2. Sync if already cloned
-            if [ -d ".git" ]; then
-              git pull origin main
+            # 2. Sync code
+            if [ ! -d "/var/www/globalalertz/MasterMonitorServer/.git" ]; then
+              echo "Cloning repository..."
+              git clone https://github.com/${{ github.repository }} /var/www/globalalertz/MasterMonitorServer
             fi
+            
+            cd /var/www/globalalertz/MasterMonitorServer
+            echo "Pulling latest changes..."
+            git fetch origin main
+            git reset --hard origin/main
             
             # 3. Handle Virtual Environment
             if [ ! -d "venv" ]; then
+              echo "Creating virtual environment..."
               python3 -m venv venv
             fi
             source venv/bin/activate
             pip install --upgrade pip
             pip install -r requirements.txt
             
-            # 4. Handle Systemd Service (Automated Copy & Restart)
+            # 4. Handle Systemd Service
+            echo "Updating and restarting service..."
             sudo cp mm_server.service /etc/systemd/system/mm_server.service
             sudo systemctl daemon-reload
             sudo systemctl enable mm_server.service

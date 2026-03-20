@@ -33,23 +33,22 @@ Once the keys are set up, add these to your repository (`Settings > Secrets and 
 | `SSH_USER` | `devuser3` |
 | `SSH_PRIVATE_KEY` | Paste your **Private SSH Key** |
 
-### 5. Automated VPS Setup
-The GitHub Actions workflow is now fully automated. On its first run, it will:
-1.  **Create the Folder**: `/var/www/globalalertz/MasterMonitorServer` automatically.
-2.  **Clone the Code**: Pulls your repository to the server.
-3.  **Setup VirtualEnv**: Automatically creates the `venv` and installs dependencies.
-4.  **Setup Service**: Automatically copies `mm_server.service` and restarts it.
+### 5. Automated VPS Setup (Critical!)
+The GitHub Actions workflow uses `sudo` to manage your server. Since GitHub cannot type your password, you **MUST** enable passwordless sudo for your user:
 
-**The ONLY thing you need to do on the server is:**
-1. Log in: `ssh devuser3@157.173.120.125`.
-2. Ensure `git` and `python3-venv` are installed:
-   ```bash
-   sudo apt update && sudo apt install git python3-venv -y
-   ```
-3. Make sure the parent folder exists and is owned by you (one-time command):
-   ```bash
-   sudo mkdir -p /var/www/globalalertz
-   sudo chown -R devuser3:devuser3 /var/www/globalalertz
-   ```
+1.  **Log in to your VPS**:
+    ```bash
+    ssh devuser3@157.173.120.125
+    ```
+2.  **Run this exact command**:
+    ```bash
+    echo "devuser3 ALL=(ALL) NOPASSWD: ALL" | sudo tee /etc/sudoers.d/devuser3
+    ```
+    *This allows the CI/CD to update your app and restart services without getting stuck at a password prompt.*
 
-After that, just **Push to GitHub**, and everything else is automatic!
+3.  **Ensure Git and Venv are installed**:
+    ```bash
+    sudo apt update && sudo apt install git python3-venv -y
+    ```
+
+After running the `NOPASSWD` command, go to GitHub and click **Re-run all jobs** in the Actions tab. It should now pass successfully!
