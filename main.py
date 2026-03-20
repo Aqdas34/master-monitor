@@ -60,7 +60,12 @@ def register_mdns_service():
     zeroconf = Zeroconf()
     logging.info(
         f"Registering mDNS service '{info.name}' on {local_ip}:{protocol.SERVER_PORT}...")
-    zeroconf.register_service(info)
+    try:
+        # allow_name_change=True will automatically rename the service if the name is taken
+        zeroconf.register_service(info, allow_name_change=True)
+    except Exception as e:
+        zeroconf.close()
+        raise e
     return zeroconf, info
 
 
@@ -155,16 +160,27 @@ def main():
     receiver_thread.start()
 
     # Register mDNS service and keep the main thread alive
-    zeroconf, info = register_mdns_service()
+    zeroconf_obj = None
+    info = None
+    try:
+        zeroconf_obj, info = register_mdns_service()
+    except Exception as e:
+        logging.warning(f"Could not register mDNS service: {e}. The server will still function, but local discovery is disabled.")
+
     try:
         while True:
             time.sleep(1)
     except KeyboardInterrupt:
         logging.info("Shutting down server...")
     finally:
-            zeroconf.unregister_service(info)
-            zeroconf.close()
-            logging.info("mDNS service unregistered. Server stopped.")
+        if zeroconf_obj and info:
+            try:
+                zeroconf_obj.unregister_service(info)
+                zeroconf_obj.close()
+                logging.info("mDNS service unregistered.")
+            except Exception as e:
+                logging.error(f"Error during mDNS shutdown: {e}")
+        logging.info("Server stopped.")
 
 
 if __name__ == "__main__":
