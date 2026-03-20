@@ -1,0 +1,44 @@
+name: Deploy MasterMonitorServer
+
+on:
+  push:
+    branches:
+      - main # Or your default branch
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy to VPS via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: 22
+          script: |
+            # 1. Update the code from GitHub
+            cd /var/www/globalalertz/MasterMonitorServer || (sudo mkdir -p /var/www/globalalertz/MasterMonitorServer && sudo chown -R $USER:$USER /var/www/globalalertz/MasterMonitorServer && cd /var/www/globalalertz/MasterMonitorServer && git clone https://github.com/${{ github.repository }} .)
+            
+            # 2. Sync if already cloned
+            if [ -d ".git" ]; then
+              git pull origin main
+            fi
+            
+            # 3. Handle Virtual Environment
+            if [ ! -d "venv" ]; then
+              python3 -m venv venv
+            fi
+            source venv/bin/activate
+            pip install --upgrade pip
+            pip install -r requirements.txt
+            
+            # 4. Handle Systemd Service (Automated Copy & Restart)
+            sudo cp mm_server.service /etc/systemd/system/mm_server.service
+            sudo systemctl daemon-reload
+            sudo systemctl enable mm_server.service
+            sudo systemctl restart mm_server.service
