@@ -39,8 +39,8 @@ def start_receiver(data_queue, pending_commands, commands_lock):
     mock_device_ids = ["MM-MOCKDEVICE01", "MM-MOCKDEVICE02"]
     
     while True:
-        # Every 10 seconds, generate data for a random mock device
-        time.sleep(10)
+        # Generate data every 3 seconds for RTI
+        time.sleep(3)
         
         # Choose a random device to send data
         chosen_device = random.choice(mock_device_ids)

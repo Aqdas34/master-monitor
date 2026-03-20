@@ -10,7 +10,7 @@ import socket
 import protocol
 # --- Main Application Toggle ---
 # Set to True to use the mock receiver for testing, False for real hardware.
-USE_MOCK_RECEIVER = True
+USE_MOCK_RECEIVER = False
 
 if USE_MOCK_RECEIVER:
     from receiver_mock import start_receiver
@@ -139,8 +139,8 @@ def cloud_worker():
                     # If failed, keep the data in the buffer for the next attempt
                     logging.warning(f"Failed to forward buffer for {device_id}. Data will be retried.")
         
-        # Wait before checking the queue again to avoid busy-waiting
-        time.sleep(5)
+        # Wait 2 seconds before checking the queue again for RTI
+        time.sleep(2)
 
 
 def main():
