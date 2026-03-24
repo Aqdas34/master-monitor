@@ -59,8 +59,8 @@ def handle_client(conn, addr, data_queue, pending_commands, commands_lock):
                     conn.sendall(response_json.encode('utf-8'))
                     logging.info(f"Sent response to {device_id}: {response_data}")
                     break # Exit loop after processing one message
-    except json.JSONDecodeError:
-        logging.error(f"Received malformed JSON from {addr}")
+    except json.JSONDecodeError as e:
+        logging.error(f"Received malformed JSON from {addr}: '{message}' - Error: {e}")
     except socket.timeout:
         logging.warning(f"Connection from {addr} timed out.")
     except Exception as e:
