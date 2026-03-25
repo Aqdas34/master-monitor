@@ -14,8 +14,6 @@ USE_MOCK_RECEIVER = False
 
 if USE_MOCK_RECEIVER:
     from receiver_mock import start_receiver
-else:
-    from receiver import start_receiver
 
 # --- Global Shared State ---
 # Thread-safe queue to hold data received from devices, ready to be forwarded.
@@ -143,6 +141,57 @@ def cloud_worker():
         time.sleep(2)
 
 
+import uvicorn
+from fastapi import FastAPI, Request, HTTPException
+
+app = FastAPI()
+
+@app.post("/")
+async def receive_data(request: Request):
+    """HTTP endpoint to receive sensor data from ESP32."""
+    try:
+        # We try to parse proper JSON
+        payload = await request.json()
+    except Exception as e:
+        # If the device sends single quotes or malformed JSON, we can try to interpret it, but let's just log and reject for now.
+        body = await request.body()
+        logging.error(f"Received malformed JSON from {request.client.host}: '{body}' - Error: {e}")
+        
+        # To handle the specific case where the text has single quotes instead of double quotes
+        try:
+            import ast
+            body_str = body.decode('utf-8')
+            payload = ast.literal_eval(body_str)
+            logging.info("Successfully recovered payload using ast.literal_eval (single quotes fix)")
+        except Exception as recovery_error:
+            raise HTTPException(status_code=400, detail="Malformed JSON")
+
+    device_id = payload.get("deviceId", "unknown")
+    if payload:
+        data_buffer.put(payload)
+        logging.info(f"Queued data from {device_id} (IP: {request.client.host}) for cloud forwarding.")
+        
+    command_to_send = protocol.COMMAND_NONE
+    if device_id != "unknown":
+        with commands_lock:
+            command_to_send = pending_commands.pop(device_id, protocol.COMMAND_NONE)
+            
+        if command_to_send != protocol.COMMAND_NONE:
+            logging.info(f"Found pending command '{command_to_send}' for {device_id}. Preparing response.")
+
+    return {
+        "status": "ok",
+        "time": int(time.time()),
+        "command": command_to_send
+    }
+
+def start_mock():
+    # If in mock mode, start the mock receiver thread
+    if USE_MOCK_RECEIVER:
+        logging.info("Starting MOCK data generator thread...")
+        mock_thread = threading.Thread(target=start_receiver, args=(data_buffer, pending_commands, commands_lock), daemon=True)
+        mock_thread.start()
+
 def main():
     """Main function to start the server and its components."""
     setup_logging()
@@ -152,14 +201,9 @@ def main():
     cloud_thread.start()
     logging.info("Cloud forwarding worker started.")
 
-    # Start the appropriate TCP receiver
-    receiver_type = "mock" if USE_MOCK_RECEIVER else "real hardware"
-    logging.info(f"Starting TCP receiver for {receiver_type}...")
-    # Pass the shared data queue and command dictionary to the receiver
-    receiver_thread = threading.Thread(target=start_receiver, args=(data_buffer, pending_commands, commands_lock), daemon=True)
-    receiver_thread.start()
+    start_mock()
 
-    # Register mDNS service and keep the main thread alive
+    # Register mDNS service
     zeroconf_obj = None
     info = None
     try:
@@ -168,8 +212,9 @@ def main():
         logging.warning(f"Could not register mDNS service: {e}. The server will still function, but local discovery is disabled.")
 
     try:
-        while True:
-            time.sleep(1)
+        # Run FastAPI using Uvicorn
+        logging.info(f"Starting FastAPI server on {protocol.SERVER_HOST}:{protocol.SERVER_PORT}...")
+        uvicorn.run(app, host=protocol.SERVER_HOST, port=protocol.SERVER_PORT, access_log=False)
     except KeyboardInterrupt:
         logging.info("Shutting down server...")
     finally:
@@ -181,7 +226,6 @@ def main():
             except Exception as e:
                 logging.error(f"Error during mDNS shutdown: {e}")
         logging.info("Server stopped.")
-
 
 if __name__ == "__main__":
     main()
