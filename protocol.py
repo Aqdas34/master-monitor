@@ -1,8 +1,8 @@
 # This file defines constants used across the server application to ensure consistency.
 
 # --- Network Configuration ---
-SERVER_HOST = "0.0.0.0"  # Listen on all available network interfaces
-SERVER_PORT = 49442      # Port for the TCP server to listen on
+SERVER_HOST = "0.0.0.0"
+SERVER_PORT = 49441
 
 # --- mDNS Configuration ---
 MDNS_SERVICE_NAME = "globalalertz-mmserver0"
