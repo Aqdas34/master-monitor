@@ -8,15 +8,12 @@ SERVER_PORT = 49441
 MDNS_SERVICE_NAME = "globalalertz-mmserver0"
 MDNS_SERVICE_TYPE = "_http._tcp.local."
 
-# --- Cloud Endpoint ---
-# Development: points to the local Cloud Ingestion API running on this machine
-# Production:  change to "http://mm_interface.globalalertz.com/rx"
-# CLOUD_ENDPOINT_URL = "http://localhost:8000/rx"
-
-
-CLOUD_ENDPOINT_URL = "http://127.0.0.1:8888/rx"
-# --- API Key (must match MASTER_MONITOR_API_KEY on the cloud server) ---
 import os
+# --- Cloud Endpoint ---
+# Falls back to production URL if not set in .env
+CLOUD_ENDPOINT_URL = os.getenv("CLOUD_ENDPOINT_URL", "http://127.0.0.1:8000/rx")
+
+# --- API Key (must match MASTER_MONITOR_API_KEY on the cloud server) ---
 CLOUD_API_KEY = os.getenv("MASTER_MONITOR_API_KEY")
 
 # --- Commands ---

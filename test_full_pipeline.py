@@ -30,7 +30,10 @@ payload = {
 }
 
 # The address of your local Master Monitor Server
-gateway_url = "http://127.0.0.1:49441/"
+# gateway_url = "http://127.0.0.1:49441/"
+# In test_full_pipeline.py
+gateway_url = "http://157.173.120.125:49441/" # <-- Replace 127.0.0.1 with your real VPS IP
+
 # The mandatory security header
 headers = {
     "X-API-Key": "MM-PROD-SECURE-KEY-827-XVZ",
