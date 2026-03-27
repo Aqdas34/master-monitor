@@ -11,10 +11,13 @@ MDNS_SERVICE_TYPE = "_http._tcp.local."
 # --- Cloud Endpoint ---
 # Development: points to the local Cloud Ingestion API running on this machine
 # Production:  change to "http://mm_interface.globalalertz.com/rx"
-CLOUD_ENDPOINT_URL = "http://localhost:8000/rx"
+# CLOUD_ENDPOINT_URL = "http://localhost:8000/rx"
 
+
+CLOUD_ENDPOINT_URL = "http://127.0.0.1:8888/rx"
 # --- API Key (must match MASTER_MONITOR_API_KEY on the cloud server) ---
-CLOUD_API_KEY = "dev-key-change-me-in-production"
+import os
+CLOUD_API_KEY = os.getenv("MASTER_MONITOR_API_KEY")
 
 # --- Commands ---
 # These strings are used in the JSON communication between the local server,

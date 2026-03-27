@@ -5,6 +5,7 @@ After=network.target
 [Service]
 # User/Group not needed for systemd --user
 WorkingDirectory=%h/MasterMonitorServer
+EnvironmentFile=%h/MasterMonitorServer/.env
 Environment="PATH=%h/MasterMonitorServer/venv/bin"
 ExecStart=%h/MasterMonitorServer/venv/bin/python main.py
 Restart=always

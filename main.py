@@ -1,6 +1,8 @@
 import logging
 import threading
 import time
+from dotenv import load_dotenv
+load_dotenv()
 from queue import Queue
 import requests
 from zeroconf import ServiceInfo, Zeroconf
@@ -142,12 +144,24 @@ def cloud_worker():
 
 
 import uvicorn
-from fastapi import FastAPI, Request, HTTPException
+from fastapi import FastAPI, Request, HTTPException, Depends
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 
+from auth import verify_api_key
+
+limiter = Limiter(key_func=get_remote_address)
 app = FastAPI()
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 @app.post("/")
-async def receive_data(request: Request):
+@limiter.limit("5/second")
+async def receive_data(
+    request: Request, 
+    _api_key: str = Depends(verify_api_key)
+):
     """HTTP endpoint to receive sensor data from ESP32."""
     try:
         # We try to parse proper JSON
